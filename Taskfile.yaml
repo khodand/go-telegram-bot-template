@@ -1,0 +1,38 @@
+version: '3'
+
+vars:
+  # Go env.
+  GOBIN: $(pwd)/bin
+  # Lib versions.
+  GOLANGCI_LINT_VERSION: v1.56.1
+  GOFUMPT_VERSION: v0.6.0
+
+tasks:
+  install-tools:
+    desc: install all necessary tools
+    cmds:
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@{{ .GOLANGCI_LINT_VERSION }}
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go install -v mvdan.cc/gofumpt@{{ .GOFUMPT_VERSION }}
+    silent: true
+
+
+  fmt:
+    desc: format code
+    deps: [ install-tools ]
+    cmds:
+      - gofumpt -w -l .
+  lint:
+    desc: lint with fix some code issues
+    deps: [ install-tools ]
+    cmds:
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} {{ .GOBIN }}/golangci-lint run --allow-parallel-runners --timeout 2m --fix --concurrency 4 ./...
+  pretty:
+    desc: prettify code
+    deps: [ fmt, lint ]
+
+  test:
+    desc: "run unit tests with coverage"
+    cmds:
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go clean --testcache
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go test -race `go list ./... | grep -v test` -coverprofile=.coverage.out
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go tool cover -func=.coverage.out | tail -n1
