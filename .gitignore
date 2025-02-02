@@ -20,6 +20,7 @@ vendor/
 # Workspace
 .idea/
 bin/
+.shared
 
 # ATTENTION: remove the comment below to include the secret config file
 # secret.*

@@ -1,0 +1,63 @@
+services:
+  app:
+    image: khodand/bot-template:latest # Your image link
+    container_name: bot-template
+    volumes:
+      - ../config/config.gitlab.yml:/config/config.yaml
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    entrypoint: ["./bot-template"]
+
+  postgres:
+    image: postgres:16.6-alpine
+    container_name: postgres
+    env_file:
+      - .env # Load environment variables from .env file
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - .shared/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    command: postgres -c fsync=off
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  victoria-metrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoria-metrics
+    ports:
+      - "8428:8428"
+    volumes:
+      - .shared/victoria-metrics-data:/victoria-metrics-data
+      - ./victoria.yaml:/victoria.yaml
+    command:
+      - '-storageDataPath=/victoria-metrics-data'
+      - '-retentionPeriod=12'
+      - '-promscrape.config=/victoria.yaml'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - .shared/grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped

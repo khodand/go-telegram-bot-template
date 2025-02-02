@@ -1,0 +1,5 @@
+development:
+  dialect: postgres
+  datasource: host=localhost port=5432 dbname=bot-template user=bot-template password=super_secure_password sslmode=disable
+  dir: migrations
+  table: migrations

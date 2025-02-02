@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 	tele "gopkg.in/telebot.v3"
 
-	"go-telegram-bot-template/pkg/logger"
+	"go-template/pkg/logger"
 )
 
 const loggerKey = "logger"

@@ -8,11 +8,13 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v2"
 
-	"go-telegram-bot-template/pkg/telegram"
+	"go-template/pkg/sqlx"
+	"go-template/pkg/telegram"
 )
 
 type Config struct {
 	General  General
+	Postgres sqlx.Config
 	Telegram telegram.Config
 }
 
@@ -31,7 +33,7 @@ func Init() (Config, error) {
 	)
 
 	if filePath = os.Getenv(configPathEnv); filePath == "" {
-		filePath = "config/secret.yaml"
+		filePath = "config/config.yaml"
 	}
 
 	if configData, err = os.ReadFile(filepath.Clean(filePath)); err != nil {

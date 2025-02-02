@@ -9,6 +9,8 @@
 # Copied from: https://gist.github.com/maratori/47a4d00457a92aa426dbd48a18776322
 
 run:
+  skip-files:
+    - "cmd/scripts/.*"
   # Timeout for analysis, e.g. 30s, 5m.
   # Default: 1m
   timeout: 3m
@@ -43,7 +45,7 @@ linters-settings:
     statements: 50
 
   gci:
-    local-prefixes: go-telegram-bot-template
+    local-prefixes: go-template
     # Section configuration to compare against.
     # Section names are case-insensitive and may contain parameters in ().
     # The default order of sections is `standard > default > custom > blank > dot`,
@@ -52,7 +54,7 @@ linters-settings:
     sections:
       - standard # Standard section: captures all standard packages.
       - default # Default section: contains all imports that could not be matched to another section type.
-      - prefix(go-telegram-bot-template) # Custom section: groups all imports with the specified Prefix.
+      - prefix(go-template) # Custom section: groups all imports with the specified Prefix.
       - blank # Blank section: contains all blank imports. This section is not present unless explicitly enabled.
       - dot # Dot section: contains all dot imports. This section is not present unless explicitly enabled.
     # Skip generated files.
@@ -284,6 +286,8 @@ issues:
   max-same-issues: 50
 
   exclude-rules:
+    - text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
+      linters: [ govet ]
     - source: "^//\\s*go:generate\\s"
       linters: [ lll ]
     - source: "(noinspection|TODO)"

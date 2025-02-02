@@ -3,9 +3,12 @@ version: '3'
 vars:
   # Go env.
   GOBIN: $(pwd)/bin
+  MIGRATOR_CONFIG_PATH: config/migrator_config.yaml
+
   # Lib versions.
-  GOLANGCI_LINT_VERSION: v1.56.1
-  GOFUMPT_VERSION: v0.6.0
+  GOLANGCI_LINT_VERSION: v1.61.0
+  GOFUMPT_VERSION: v0.7.0
+  SQL_MIGRATE_VERSION: v1.2.0
 
 tasks:
   install-tools:
@@ -13,6 +16,7 @@ tasks:
     cmds:
       - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@{{ .GOLANGCI_LINT_VERSION }}
       - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go install -v mvdan.cc/gofumpt@{{ .GOFUMPT_VERSION }}
+      - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go install -v github.com/rubenv/sql-migrate/...@{{ .SQL_MIGRATE_VERSION }}
     silent: true
 
 
@@ -36,3 +40,28 @@ tasks:
       - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go clean --testcache
       - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go test -race `go list ./... | grep -v test` -coverprofile=.coverage.out
       - GOPATH=$GOPATH GOBIN={{ .GOBIN }} go tool cover -func=.coverage.out | tail -n1
+
+  infra-up:
+    desc: "start infra containers"
+    cmds:
+      - |
+        docker compose -f deployments/docker-compose.local.yaml up --remove-orphans --detach --wait {{ .CLI_ARGS }}
+
+  infra-down:
+    desc: "clean infra containers"
+    cmds:
+      - docker compose -f deployments/docker-compose.local.yaml down
+
+  migrations-new:
+    desc: "create a migration"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{ .GOBIN }}/sql-migrate new -config={{ .MIGRATOR_CONFIG_PATH }} -env="development" {{ .CLI_ARGS }}
+
+  migrations-up:
+    desc: "apply migrations"
+    deps: [ install-tools ]
+    cmds:
+      - |
+        {{ .GOBIN }}/sql-migrate up -config={{ .MIGRATOR_CONFIG_PATH }} -env="development"

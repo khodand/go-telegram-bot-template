@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -9,10 +10,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"go-telegram-bot-template/cmd/config"
-	"go-telegram-bot-template/internal/bot"
-	"go-telegram-bot-template/pkg/logger"
-	ptelegram "go-telegram-bot-template/pkg/telegram"
+	"go-template/cmd/config"
+	"go-template/internal/bot"
+	"go-template/pkg/logger"
+	psqlx "go-template/pkg/sqlx"
+	ptelegram "go-template/pkg/telegram"
 )
 
 func main() {
@@ -23,9 +25,22 @@ func main() {
 
 	log := logger.New(cfg.General.Debug)
 
+	pgConnection, err := psqlx.NewDatabase(cfg.Postgres)
+	if err != nil {
+		log.Fatal("Failed to open postgres connection", zap.Error(err))
+	}
+	err = pgConnection.Ping()
+	if err != nil {
+		log.Fatal("Failed to ping postgres", zap.Error(err))
+	}
+
+	_ = psqlx.NewTransactor(pgConnection, log, &psqlx.TransactorConfig{Isolation: sql.LevelRepeatableRead})
+
+	_ = psqlx.NewConnContainer(pgConnection, pgConnection)
+
 	telegramClient, err := ptelegram.NewClient(log, cfg.Telegram)
 	if err != nil {
-		log.Fatal("failed to init bot client", zap.Error(err))
+		log.Fatal("Failed to init bot client", zap.Error(err))
 	}
 
 	telegramBot := bot.New(telegramClient)
@@ -35,7 +50,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Info("bot client is starting...")
+		log.Info("Bot client is starting...")
 		telegramClient.Start()
 	}()
 
@@ -45,6 +60,6 @@ func main() {
 	telegramClient.Stop()
 	wg.Wait()
 
-	log.Info("bot was stopped gracefully")
+	log.Info("Bot was stopped gracefully")
 	_ = log.Sync()
 }
