@@ -1,7 +1,7 @@
 services:
   app:
-    image: khodand/bot-template:latest # Your image link
-    container_name: bot-template
+    image: khodand/go-template:latest # Your image link
+    container_name: go-template
     volumes:
       - ../config/config.gitlab.yml:/config/config.yaml
     restart: always
@@ -10,7 +10,7 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
-    entrypoint: ["./bot-template"]
+    entrypoint: ["./go-template"]
 
   postgres:
     image: postgres:16.6-alpine

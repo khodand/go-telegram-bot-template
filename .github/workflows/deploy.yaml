@@ -46,16 +46,16 @@ jobs:
 
       - name: Deploy to Remote Server
         run: |
-          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/docker-compose.server.yaml "$S_NAME":/root/go-template/docker-compose.yaml"
-          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/victoria.yaml "$S_NAME":/root/go-template/victoria.yaml"
+          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/docker-compose.server.yaml ${{ secrets.TIMEWEB_SSH_HOST }}:/root/go-template/docker-compose.yaml
+          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/victoria.yaml ${{ secrets.TIMEWEB_SSH_HOST }}:/root/go-template/victoria.yaml
 
-          ssh -o StrictHostKeyChecking=no "$S_NAME" << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.TIMEWEB_SSH_HOST }} << 'EOF'
           set -e
 
           cd /root/go-template
 
           docker compose down
-          docker compose pull
+          docker compose pull --quiet
           docker compose up -d --remove-orphans
           docker image prune -f
 
