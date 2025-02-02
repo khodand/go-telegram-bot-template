@@ -1,4 +1,5 @@
-name: deploy
+name: Deploy
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,12 +9,12 @@ on:
         default: 'warning'
 
 jobs:
-  docker:
+  deploy:
     runs-on: ubuntu-latest
     env:
-      S_NAME: ${{ secrets.TIMEWEB_FULL_HOST }}
+      S_NAME: ${{ secrets.TIMEWEB_SSH_HOST }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up QEMU
@@ -28,21 +29,35 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           context: .
           file: ./build/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/telegram-bot:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-template:latest
 
-      - uses: shimataro/ssh-key-action@v2
+      - name: Set up SSH key
+        uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.TIMEWEB_SSH_KEY }}
-          known_hosts: ${{ secrets.TIMEWEB_HOST }}
+          known_hosts: ${{ secrets.TIMEWEB_SSH_IP }}
 
-      - name: Deploy
+      - name: Deploy to Remote Server
         run: |
-          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/* "$S_NAME":/root/telegram-bot/
-          ssh -o StrictHostKeyChecking=no "$S_NAME" /root/telegram-bot/start.sh
+          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/docker-compose.server.yaml "$S_NAME":/root/go-template/docker-compose.yaml"
+          rsync -avze "ssh -o StrictHostKeyChecking=no" deployments/victoria.yaml "$S_NAME":/root/go-template/victoria.yaml"
+
+          ssh -o StrictHostKeyChecking=no "$S_NAME" << 'EOF'
+          set -e
+
+          cd /root/go-template
+
+          docker compose down
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -f
+
+          echo "✅ Deploy completed!"
+          EOF
